@@ -107,13 +107,18 @@ export class ExamenesService {
   private async insertCalendarEvent(examen: ExamenEntity): Promise<string> {
     const { calendar, calendarId } = await this.getCalendar();
 
+    // Google Calendar requiere end.date = start + 1 día para eventos de día completo (rango exclusivo)
+    const endDate = new Date(examen.fecha + 'T00:00:00');
+    endDate.setDate(endDate.getDate() + 1);
+    const endDateStr = endDate.toISOString().split('T')[0];
+
     const response = await calendar.events.insert({
       calendarId,
       requestBody: {
         summary: `Examen: ${examen.materiaNombre}`,
         description: `Registrado con la app Hay Examen 📚`,
-        start: { date: examen.fecha, timeZone: TIMEZONE },
-        end:   { date: examen.fecha, timeZone: TIMEZONE },
+        start: { date: examen.fecha },
+        end:   { date: endDateStr },
         reminders: { useDefault: true },
       },
     });
