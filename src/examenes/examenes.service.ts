@@ -87,6 +87,8 @@ export class ExamenesService {
     const rawKey = this.config.get<string>('GOOGLE_PRIVATE_KEY') ?? '';
     const privateKey = rawKey.replace(/\\n/g, '\n');
 
+    this.logger.log(`[diag] email ok: ${!!clientEmail} | key header: ${privateKey.split('\n')[0]} | key lines: ${privateKey.split('\n').length}`);
+
     const auth = new google.auth.GoogleAuth({
       credentials: { client_email: clientEmail, private_key: privateKey },
       scopes: ['https://www.googleapis.com/auth/calendar'],
