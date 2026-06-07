@@ -17,6 +17,9 @@ export class ExamenEntity {
   @Column({ nullable: true })
   calendarEventId: string;
 
+  @Column({ nullable: true, type: 'text' })
+  nota: string | null;
+
   @CreateDateColumn()
   createdAt: Date;
 }

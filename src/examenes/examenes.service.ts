@@ -82,6 +82,48 @@ export class ExamenesService {
     this.logger.log(`Examen eliminado: ${examen.materiaNombre} el ${examen.fecha}`);
   }
 
+  async updateNota(id: number, nota: string): Promise<ExamenEntity> {
+    const examen = await this.examenRepo.findOneBy({ id });
+    if (!examen) throw new NotFoundException('Examen no encontrado');
+
+    examen.nota = nota;
+    const saved = await this.examenRepo.save(examen);
+
+    if (examen.calendarEventId) {
+      try {
+        await this.patchCalendarDescription(
+          examen.calendarEventId,
+          `Registrado con la app Hay Examen 📚\n\n📝 Nota: ${nota}`,
+        );
+      } catch (err) {
+        this.logger.error('No se pudo actualizar la descripción del evento', err);
+      }
+    }
+
+    return saved;
+  }
+
+  async deleteNota(id: number): Promise<ExamenEntity> {
+    const examen = await this.examenRepo.findOneBy({ id });
+    if (!examen) throw new NotFoundException('Examen no encontrado');
+
+    examen.nota = null;
+    const saved = await this.examenRepo.save(examen);
+
+    if (examen.calendarEventId) {
+      try {
+        await this.patchCalendarDescription(
+          examen.calendarEventId,
+          'Registrado con la app Hay Examen 📚',
+        );
+      } catch (err) {
+        this.logger.error('No se pudo restaurar la descripción del evento', err);
+      }
+    }
+
+    return saved;
+  }
+
   private async getCalendar() {
     const clientEmail = this.config.get<string>('GOOGLE_SERVICE_ACCOUNT_EMAIL');
     const rawKey = this.config.get<string>('GOOGLE_PRIVATE_KEY') ?? '';
@@ -97,6 +139,12 @@ export class ExamenesService {
       calendar: google.calendar({ version: 'v3', auth }),
       calendarId: this.config.get<string>('GOOGLE_CALENDAR_ID') ?? 'primary',
     };
+  }
+
+  private async patchCalendarDescription(eventId: string, description: string): Promise<void> {
+    const { calendar, calendarId } = await this.getCalendar();
+    await calendar.events.patch({ calendarId, eventId, requestBody: { description } });
+    this.logger.log(`Descripción de evento actualizada (id: ${eventId})`);
   }
 
   private async deleteCalendarEvent(eventId: string): Promise<void> {
